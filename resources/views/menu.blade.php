@@ -40,7 +40,7 @@
             <div class="col-6 col-md-3 mb-4">
                 <div class="card h-100 shadow-sm border-0 hover-effect">
                     <!-- Gambar Makanan -->
-                    <img src="{{ $item->image }}" class="card-img-top" alt="{{ $item->name }}" style="height: 150px; object-fit: cover;">
+                    <img src="{{ asset($item->image) }}" class="card-img-top" alt="{{ $item->name }}" style="height: 150px; object-fit: cover;">
 
                     <div class="card-body d-flex flex-column">
                         <!-- Nama Makanan -->

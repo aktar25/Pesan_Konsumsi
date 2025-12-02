@@ -17,7 +17,7 @@ class ProductSeeder extends Seeder
             'name' => 'Indomie Goreng Plus Telur',
             'price' => 10000,
             'description' => 'Indomie goreng dengan tambahan telur',
-            'image' => 'https://placehold.co/400x300'
+            'image' => 'images/indomie.jpg'
         ]);
 
         Product::create([

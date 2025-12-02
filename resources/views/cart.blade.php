@@ -49,8 +49,8 @@
                                 <tr data-id="{{ $id }}">
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center">
-                                            <!-- Gambar Kecil (Thumbnail) -->
-                                            <img src="{{ $details['image'] }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                            <!-- GANTI JADI INI: -->
+                                            <img src="{{ asset($details['image']) }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
                                             <div class="fw-bold">{{ $details['name'] }}</div>
                                         </div>
                                     </td>
