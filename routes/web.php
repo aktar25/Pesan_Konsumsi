@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,7 +13,14 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+// Halaman Utama: Menampilkan Menu Makanan
+Route::get('/', [ProductController::class, 'index']);
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Halaman Tambah ke Keranjang
+Route::get('add-to-cart/{id}', [ProductController::class, 'addToCart'])->name('add.to.cart');
+
+// Halaman Lihat Keranjang
+Route::get('cart', [ProductController::class, 'cart'])->name('cart');
+
+// Aksi Hapus Item dari Keranjang
+Route::delete('remove-from-cart', [ProductController::class, 'remove'])->name('remove.from.cart');
