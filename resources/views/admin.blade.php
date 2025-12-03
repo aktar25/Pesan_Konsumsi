@@ -56,7 +56,7 @@
                         </thead>
                         <tbody>
                             @forelse($orders as $order)
-                            <tr class="{{ $order->status == 'pending' ? 'table-active border border-warning border-3' : '' }}">
+                            <tr class="{{ $order->status == 'pending' ? 'table-active border border-warning border-3' : ($order->status == 'cancelled' ? 'row-cancelled' : '') }}">
                                 <td class="fs-4 fw-bold text-warning">{{ $order->table_number }}</td>
                                 <td class="fw-bold">{{ $order->customer_name }}</td>
                                 <td class="text-start">
@@ -72,15 +72,32 @@
                                 <td>Rp {{ number_format($order->total_price, 0, ',', '.') }}</td>
                                 <td>
                                     @if($order->status == 'pending')
-                                        <form action="{{ route('admin.complete', $order->id) }}" method="POST">
-                                            @csrf
-                                            <button class="btn btn-success btn-sm w-100 fw-bold shadow-sm">
-                                                <i class="fa fa-check me-1"></i> Selesai
-                                            </button>
-                                        </form>
-                                        <div class="badge bg-danger blink mt-2 w-100">BARU MASUK!</div>
-                                    @else
-                                        <span class="badge bg-secondary w-100 py-2"><i class="fa fa-check-double me-1"></i> Beres</span>
+                                        <div class="d-flex gap-2 justify-content-center">
+
+                                            <!-- 1. Tombol Selesai (Hijau) -->
+                                            <form action="{{ route('admin.complete', $order->id) }}" method="POST">
+                                                @csrf
+                                                <button class="btn btn-success btn-sm fw-bold shadow-sm" title="Pesanan Selesai">
+                                                    <i class="fa fa-check"></i>
+                                                </button>
+                                            </form>
+
+                                            <!-- 2. Tombol Batal (Merah) - PAKE KONFIRMASI -->
+                                            <form action="{{ route('admin.cancel', $order->id) }}" method="POST" onsubmit="return confirm('Yakin mau membatalkan pesanan Meja {{ $order->table_number }}?')">
+                                                @csrf
+                                                <button class="btn btn-danger btn-sm fw-bold shadow-sm" title="Batalkan Pesanan">
+                                                    <i class="fa fa-times"></i>
+                                                </button>
+                                            </form>
+
+                                        </div>
+                                        <div class="badge bg-danger blink mt-2">BARU MASUK!</div>
+
+                                    @elseif($order->status == 'completed')
+                                        <span class="badge bg-success w-100 py-2"><i class="fa fa-check-double me-1"></i> Beres</span>
+
+                                    @elseif($order->status == 'cancelled')
+                                        <span class="badge bg-secondary w-100 py-2"><i class="fa fa-ban me-1"></i> Dibatalkan</span>
                                     @endif
                                 </td>
                             </tr>

@@ -32,3 +32,4 @@ Route::post('checkout', [ProductController::class, 'checkout'])->name('checkout'
 Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
 Route::get('/admin/check-new', [AdminController::class, 'checkNewOrder'])->name('admin.check');
 Route::post('/admin/complete/{id}', [AdminController::class, 'complete'])->name('admin.complete');
+Route::post('/admin/cancel/{id}', [AdminController::class, 'cancel'])->name('admin.cancel');
