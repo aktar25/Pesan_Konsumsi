@@ -12,28 +12,28 @@
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
         body { background-color: #212529; color: white; }
+        .row-cancelled { opacity: 0.5; background-color: #343a40 !important; }
     </style>
 </head>
 <body>
 
     <nav class="navbar navbar-dark bg-secondary mb-4 shadow">
         <div class="container">
-            <span class="navbar-brand fw-bold">
-                <i class="fa fa-utensils me-2"></i> ADMIN DAPUR
-            </span>
-            <button class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="testAudio()">
-                <i class="fa fa-volume-up me-1"></i> Klik Tes Suara Dulu
-            </button>
+            <span class="navbar-brand fw-bold"><i class="fa fa-utensils me-2"></i> ADMIN DAPUR</span>
+            <div class="d-flex">
+                <a href="{{ route('products.index') }}" class="btn btn-outline-light btn-sm fw-bold me-2"><i class="fa fa-edit"></i> Kelola Menu</a>
+                <button class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="testAudio()"><i class="fa fa-volume-up me-1"></i> Tes Suara</button>
+            </div>
         </div>
     </nav>
 
     <div class="container">
-
+        <!-- Info Monitor -->
         <div class="alert alert-info d-flex align-items-center mb-4 text-dark shadow-sm">
             <i class="fa fa-info-circle fa-2x me-3"></i>
             <div>
-                <strong>Monitor Aktif!</strong> Halaman ini akan mengecek pesanan baru setiap 5 detik.<br>
-                Pastikan tombol "Tes Suara" sudah diklik agar notifikasi bunyi.
+                <strong>Monitor Aktif!</strong> Halaman ini akan mengecek pesanan baru setiap 3 detik. <br>
+                Halaman <b>tidak akan reload</b>, tabel akan berubah sendiri secara otomatis.
             </div>
         </div>
 
@@ -51,64 +51,13 @@
                                 <th>Nama</th>
                                 <th>Menu Pesanan</th>
                                 <th>Total</th>
+                                <th>Waktu</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @forelse($orders as $order)
-                            <tr class="{{ $order->status == 'pending' ? 'table-active border border-warning border-3' : ($order->status == 'cancelled' ? 'row-cancelled' : '') }}">
-                                <td class="fs-4 fw-bold text-warning">{{ $order->table_number }}</td>
-                                <td class="fw-bold">{{ $order->customer_name }}</td>
-                                <td class="text-start">
-                                    <ul class="list-unstyled mb-0 small">
-                                        @foreach($order->items as $item)
-                                            <li class="mb-1">
-                                                <span class="badge bg-primary rounded-pill me-1">{{ $item->quantity }}x</span>
-                                                {{ $item->product->name }}
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                </td>
-                                <td>Rp {{ number_format($order->total_price, 0, ',', '.') }}</td>
-                                <td>
-                                    @if($order->status == 'pending')
-                                        <div class="d-flex gap-2 justify-content-center">
-
-                                            <!-- 1. Tombol Selesai (Hijau) -->
-                                            <form action="{{ route('admin.complete', $order->id) }}" method="POST">
-                                                @csrf
-                                                <button class="btn btn-success btn-sm fw-bold shadow-sm" title="Pesanan Selesai">
-                                                    <i class="fa fa-check"></i>
-                                                </button>
-                                            </form>
-
-                                            <!-- 2. Tombol Batal (Merah) - PAKE KONFIRMASI -->
-                                            <form action="{{ route('admin.cancel', $order->id) }}" method="POST" onsubmit="return confirm('Yakin mau membatalkan pesanan Meja {{ $order->table_number }}?')">
-                                                @csrf
-                                                <button class="btn btn-danger btn-sm fw-bold shadow-sm" title="Batalkan Pesanan">
-                                                    <i class="fa fa-times"></i>
-                                                </button>
-                                            </form>
-
-                                        </div>
-                                        <div class="badge bg-danger blink mt-2">BARU MASUK!</div>
-
-                                    @elseif($order->status == 'completed')
-                                        <span class="badge bg-success w-100 py-2"><i class="fa fa-check-double me-1"></i> Beres</span>
-
-                                    @elseif($order->status == 'cancelled')
-                                        <span class="badge bg-secondary w-100 py-2"><i class="fa fa-ban me-1"></i> Dibatalkan</span>
-                                    @endif
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-5 text-muted">
-                                    <i class="fa fa-coffee fa-3x mb-3"></i><br>
-                                    Belum ada pesanan masuk. Santai dulu... ☕
-                                </td>
-                            </tr>
-                            @endforelse
+                        <!-- PENTING: ID ini target update kita -->
+                        <tbody id="order-table-body">
+                            @include('admin.table_content')
                         </tbody>
                     </table>
                 </div>
@@ -116,22 +65,25 @@
         </div>
     </div>
 
-    <!-- AUDIO -->
     <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
-    <!-- LOGIKA JAVASCRIPT DIPERBAIKI -->
     <script>
+        // 1. SETUP SUARA
         function playSound() {
             var audio = document.getElementById("notifSound");
-            audio.play().catch(error => { console.log("Klik Tes Suara dulu!"); });
+            audio.currentTime = 0;
+            return audio.play();
         }
 
         function testAudio() {
-            playSound();
-            alert("🔔 Ting-nong! Kalau bunyi, berarti sistem aman!");
+            playSound().then(() => {
+                alert("🔔 Ting-nong! Sistem suara aman.");
+            }).catch(error => {
+                alert("Browser memblokir suara. Klik OK lalu klik sembarang tempat.");
+            });
         }
 
-        // Kita set -1 agar saat loading pertama kali tidak dianggap "tambah pesanan"
+        // 2. LOGIKA UTAMA
         let lastPendingCount = -1;
 
         setInterval(function() {
@@ -139,32 +91,41 @@
                 url: "{{ route('admin.check') }}",
                 method: "GET",
                 success: function(response) {
-                    console.log("Cek Order:", response.pending_count); // Cek Console browser (F12)
 
-                    // 1. Jika ini pertama kali load (masih -1), simpan jumlahnya saja
+                    // Inisialisasi awal (supaya gak bunyi pas baru dibuka)
                     if (lastPendingCount === -1) {
                         lastPendingCount = response.pending_count;
                         return;
                     }
 
-                    // 2. Jika jumlah pending bertambah (misal dari 0 jadi 1, atau 2 jadi 3)
-                    if (response.pending_count > lastPendingCount) {
-                        playSound();
-                        // Kita kasih delay dikit biar suaranya kedengeran dulu baru reload
-                        setTimeout(function() {
-                            alert("🔔 PESANAN BARU MASUK! Cek Dapur!");
-                            window.location.reload();
-                        }, 500);
+                    // JIKA ADA PERUBAHAN JUMLAH PESANAN (Entah nambah atau berkurang/selesai)
+                    if (response.pending_count !== lastPendingCount) {
+
+                        // Kalau jumlahnya BERTAMBAH, bunyikan suara!
+                        if (response.pending_count > lastPendingCount) {
+                            playSound().catch(e => console.log("Suara gagal"));
+                        }
+
+                        // UPDATE TABEL OTOMATIS (Pakai teknik .load)
+                        // Ini akan mengambil isi tabel terbaru dari server dan menempelkannya di sini
+                        $('#order-table-body').load(location.href + " #order-table-body > *", function() {
+                            console.log("Tabel berhasil diupdate!");
+                        });
                     }
 
+                    // Simpan jumlah terakhir
                     lastPendingCount = response.pending_count;
                 },
                 error: function(xhr) {
-                    console.log("Gagal koneksi ke server", xhr);
+                    console.log("Gagal koneksi, coba refresh manual.");
                 }
             });
-        }, 3000); // Saya percepat jadi 3 detik sekali biar lebih responsif
-    </script>
+        }, 3000); // Cek setiap 3 detik
 
+        // Set awal
+        $(document).ready(function() {
+            $.ajax({ url: "{{ route('admin.check') }}", method: "GET", success: function(res) { lastPendingCount = res.pending_count; } });
+        });
+    </script>
 </body>
 </html>

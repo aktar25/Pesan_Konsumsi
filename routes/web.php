@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,3 +34,6 @@ Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
 Route::get('/admin/check-new', [AdminController::class, 'checkNewOrder'])->name('admin.check');
 Route::post('/admin/complete/{id}', [AdminController::class, 'complete'])->name('admin.complete');
 Route::post('/admin/cancel/{id}', [AdminController::class, 'cancel'])->name('admin.cancel');
+
+Route::resource('admin/products', AdminProductController::class)->names('products');
+
