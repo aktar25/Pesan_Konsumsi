@@ -13,16 +13,33 @@
         @keyframes blinker { 50% { opacity: 0; } }
         body { background-color: #212529; color: white; }
         .row-cancelled { opacity: 0.5; background-color: #343a40 !important; }
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
     </style>
 </head>
 <body>
+
+    <div id="start-overlay">
+        <h1 class="text-warning mb-4"><i class="fa fa-utensils"></i> ADMIN DAPUR</h1>
+        <button class="btn btn-danger btn-lg fw-bold px-5 py-3 shadow" onclick="startMonitoring()">
+            <i class="fa fa-power-off me-2"></i> KLIK UNTUK MULAI MONITORING
+        </button>
+        <p class="text-white mt-3">Wajib diklik agar suara notifikasi aktif.</p>
+    </div>
 
     <nav class="navbar navbar-dark bg-secondary mb-4 shadow">
         <div class="container">
             <span class="navbar-brand fw-bold"><i class="fa fa-utensils me-2"></i> ADMIN DAPUR</span>
             <div class="d-flex">
-                <a href="{{ route('products.index') }}" class="btn btn-outline-light btn-sm fw-bold me-2"><i class="fa fa-edit"></i> Kelola Menu</a>
-                <button class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="testAudio()"><i class="fa fa-volume-up me-1"></i> Tes Suara</button>
+                <a href="{{ route('products.index') }}" class="btn btn-outline-light btn-sm fw-bold me-2">
+                    <i class="fa fa-edit"></i> Kelola Menu
+                </a>
+                <button class="btn btn-success btn-sm fw-bold shadow-sm disabled" id="status-btn">
+                    <i class="fa fa-volume-up"></i> Suara Aktif
+                </button>
             </div>
         </div>
     </nav>
@@ -32,8 +49,7 @@
         <div class="alert alert-info d-flex align-items-center mb-4 text-dark shadow-sm">
             <i class="fa fa-info-circle fa-2x me-3"></i>
             <div>
-                <strong>Monitor Aktif!</strong> Halaman ini akan mengecek pesanan baru setiap 3 detik. <br>
-                Halaman <b>tidak akan reload</b>, tabel akan berubah sendiri secara otomatis.
+                <strong>Sistem siap!</strong> Jangan tutup halaman ini. Notifikasi akan muncul otomatis.
             </div>
         </div>
 
@@ -68,18 +84,45 @@
     <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
     <script>
-        // 1. SETUP SUARA
-        function playSound() {
+        // 1. FUNGSI MULAI (Dipanggil saat klik tombol besar)
+        function startMonitoring() {
+            // Sembunyikan overlay
+            $('#start-overlay').fadeOut();
+
+            // Coba putar suara sebentar (pancingan)
             var audio = document.getElementById("notifSound");
-            audio.currentTime = 0;
-            return audio.play();
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+            }).catch(e => alert("Gagal akses audio. Pastikan izin browser diberikan."));
+
+            // Minta Izin Notifikasi Desktop (Biar muncul pop-up di Windows)
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
         }
 
-        function testAudio() {
-            playSound().then(() => {
-                alert("🔔 Ting-nong! Sistem suara aman.");
-            }).catch(error => {
-                alert("Browser memblokir suara. Klik OK lalu klik sembarang tempat.");
+        // 2. FUNGSI BUNYIKAN ALARM & NOTIFIKASI
+        function triggerAlarm() {
+            // A. Mainkan Suara
+            var audio = document.getElementById("notifSound");
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Suara error:", e));
+
+            // B. Tampilkan Notifikasi Desktop (Windows/Mac Notification)
+            if (Notification.permission === "granted") {
+                new Notification("PESANAN BARU! 🍜", {
+                    body: "Ada pesanan masuk di dapur. Cek sekarang!",
+                    icon: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png"
+                });
+            }
+        }
+
+        // 3. UPDATE TABEL TANPA RELOAD
+        function updateTableContent() {
+            $.get("{{ route('admin.index') }}", function(htmlData) {
+                var newTbody = $(htmlData).find('#order-table-body').html();
+                $('#order-table-body').html(newTbody);
             });
         }
 
@@ -98,26 +141,19 @@
                         return;
                     }
 
-                    // JIKA ADA PERUBAHAN JUMLAH PESANAN (Entah nambah atau berkurang/selesai)
+                    // JIKA ADA PESANAN BARU
+                    if (response.pending_count > lastPendingCount) {
+                        triggerAlarm(); // Panggil fungsi alarm komplit
+                        updateTableContent(); // Update tabel
+                    }
+
+                   // Jika ada perubahan status (selesai/batal), tetap update tabel
                     if (response.pending_count !== lastPendingCount) {
-
-                        // Kalau jumlahnya BERTAMBAH, bunyikan suara!
-                        if (response.pending_count > lastPendingCount) {
-                            playSound().catch(e => console.log("Suara gagal"));
-                        }
-
-                        // UPDATE TABEL OTOMATIS (Pakai teknik .load)
-                        // Ini akan mengambil isi tabel terbaru dari server dan menempelkannya di sini
-                        $('#order-table-body').load(location.href + " #order-table-body > *", function() {
-                            console.log("Tabel berhasil diupdate!");
-                        });
+                        updateTableContent();
                     }
 
                     // Simpan jumlah terakhir
                     lastPendingCount = response.pending_count;
-                },
-                error: function(xhr) {
-                    console.log("Gagal koneksi, coba refresh manual.");
                 }
             });
         }, 3000); // Cek setiap 3 detik
