@@ -126,6 +126,28 @@
             });
         }
 
+        // --- INTERCEPT TOMBOL AKSI BIAR GAK RELOAD ---
+        $(document).on('submit', '#order-table-body form', function(e) {
+            e.preventDefault(); 
+
+            var form = $(this);
+            var url = form.attr('action'); // Ambil alamat tujuan (complete/cancel)
+
+            // Kirim data lewat "Jalur Belakang" (AJAX)
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: form.serialize(), // Kirim data form (termasuk csrf token)
+                success: function(response) {
+                    // Kalau sukses, langsung update tabelnya aja
+                    updateTableContent();
+                },
+                error: function(xhr) {
+                    alert("Gagal update status. Coba lagi.");
+                }
+            });
+        });
+
         // 2. LOGIKA UTAMA
         let lastPendingCount = -1;
 
